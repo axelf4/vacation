@@ -79,6 +79,17 @@ var LASER_LETHAL = 100;
 var init = function() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
+	fowl.registerComponents([Position,
+			Shape,
+			Lifetime,
+			Direction,
+			Velocity,
+			ParticleEmitter,
+			Enemy,
+			Shrink,
+			Acceleration,
+			Velocity2,
+			Laser]);
 	update();
 };
 
@@ -89,11 +100,11 @@ var newGame = function() {
 	HELLMODE_IN = 500;
 
 	player = fowl.createEntity();
-	fowl.addComponent(player, "Position", new Position(800 / 2, 600 / 2));
-	fowl.addComponent(player, "Shape", new Shape());
-	fowl.addComponent(player, "ParticleEmitter", new ParticleEmitter(10, "green", 30));
-	fowl.addComponent(player, "Shrink", new Shrink(10, 100));
-	fowl.addComponent(player, "Velocity2", new Velocity2());
+	fowl.addComponent(player, new Position(800 / 2, 600 / 2));
+	fowl.addComponent(player, new Shape());
+	fowl.addComponent(player, new ParticleEmitter(10, "green", 30));
+	fowl.addComponent(player, new Shrink(10, 100));
+	fowl.addComponent(player, new Velocity2());
 };
 
 var render = function() {
@@ -113,7 +124,7 @@ var render = function() {
 	} else if (state == STATE_INGAME) {
 		// Draw lasers
 		fowl.each(function(entity) {
-			var laser = fowl.getComponent(entity, "Laser");
+			var laser = fowl.getComponent(entity, Laser);
 			var width = 60 * Math.min(100, laser.timer) / 100;
 			if (laser.timer < 100) ctx.strokeStyle = "lightgreen";
 			else {
@@ -130,16 +141,16 @@ var render = function() {
 				ctx.lineTo(laser.x, 600);
 				ctx.stroke();
 			}
-		}, "Laser");
+		}, Laser);
 		// Draw shapes
 		fowl.each(function(entity) {
-			var position = fowl.getComponent(entity, "Position"),
-			shape = fowl.getComponent(entity, "Shape"),
-			lifetime = fowl.getComponent(entity, "Lifetime");
+			var position = fowl.getComponent(entity, Position),
+			shape = fowl.getComponent(entity, Shape),
+			lifetime = fowl.getComponent(entity, Lifetime);
 			ctx.globalAlpha = lifetime ? lifetime.remaining / lifetime.start : 1;
 			ctx.fillStyle = shape.color;
 			ctx.fillRect(position.x, position.y, shape.width, shape.height);
-		}, "Position", "Shape");
+		}, Position, Shape);
 		if (HELLMODE_IN <= 0) {
 			var gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
 			gradient.addColorStop("0", "magenta");
@@ -156,7 +167,7 @@ var render = function() {
 };
 
 var updatePlayer = function(dt) {
-	var position = fowl.getComponent(player, "Position");
+	var position = fowl.getComponent(player, Position);
 	if (level < 3) {
 		if (keys[65] && position.x > 0) position.x -= MOVEMENT_SPEED * dt;
 		if (keys[87] && position.y > 0) position.y -= MOVEMENT_SPEED * dt;
@@ -164,7 +175,7 @@ var updatePlayer = function(dt) {
 		if (keys[83] && position.y < 600) position.y += MOVEMENT_SPEED * dt;
 	} else {
 		var acceleration = new Acceleration();
-		var velocity = fowl.getComponent(player, "Velocity2");
+		var velocity = fowl.getComponent(player, Velocity2);
 		var k = 20;
 		if (keys[65]) acceleration.x -= MOVEMENT_SPEED / k * dt;
 		if (keys[87]) acceleration.y -= MOVEMENT_SPEED / k * dt;
@@ -181,12 +192,12 @@ var updatePlayer = function(dt) {
 	}
 
 	if (level >= 2 && HELLMODE_IN <= -400) {
-		var shrink = fowl.getComponent(player, "Shrink");
+		var shrink = fowl.getComponent(player, Shrink);
 		shrink.timer += dt / 3 * 3;
 		var test = (shrink.timer % (shrink.max - shrink.min)) / (shrink.max - shrink.min);
 		if (test > 0.5) test = 1 - test;
 		var size = shrink.min + ((shrink.max - shrink.min) * Math.sin(test));
-		var shape = fowl.getComponent(player, "Shape");
+		var shape = fowl.getComponent(player, Shape);
 		var oldSize = shape.width;
 		shape.width = shape.height = size;
 		position += (size - oldSize) / 2 * 2;
@@ -195,19 +206,19 @@ var updatePlayer = function(dt) {
 
 var spawnEnemy = function(x, y, direction) {
 	var enemy = fowl.createEntity();
-	var shape = fowl.addComponent(enemy, "Shape", new Shape());
+	var shape = fowl.addComponent(enemy, new Shape());
 	shape.color = "red";
 	shape.width = shape.height = 30;
-	fowl.addComponent(enemy, "Position", new Position(x, y));
-	fowl.addComponent(enemy, "Direction", new Direction()).direction = direction;
-	fowl.addComponent(enemy, "Lifetime", new Lifetime(500));
-	fowl.addComponent(enemy, "Velocity", new Velocity(enemySpeed));
-	fowl.addComponent(enemy, "ParticleEmitter", new ParticleEmitter(20, "red", 60, 40));
-	fowl.addComponent(enemy, "Enemy", new Enemy());
+	fowl.addComponent(enemy, new Position(x, y));
+	fowl.addComponent(enemy, new Direction()).direction = direction;
+	fowl.addComponent(enemy, new Lifetime(500));
+	fowl.addComponent(enemy, new Velocity(enemySpeed));
+	fowl.addComponent(enemy, new ParticleEmitter(20, "red", 60, 40));
+	fowl.addComponent(enemy, new Enemy());
 }
 
 var updateEnemies = function(dt) {
-	if (Math.random() * 100 * dt < enemySpawnrate) return;
+	if (Math.random() * 100 < enemySpawnrate * dt) return;
 	var x, y, direction, pad = 50;
 
 	direction = Math.random() * 360;
@@ -231,10 +242,10 @@ var updateLasers = function(dt) {
 	// Spawn lasers
 	if (level >= 1 && Math.random() * 100 < 0.1 * dt) {
 		var laser = fowl.createEntity();
-		fowl.addComponent(laser, "Laser", new Laser());
+		fowl.addComponent(laser, new Laser());
 	}
 	fowl.each(function(entity) {
-		var laser = fowl.getComponent(entity, "Laser");
+		var laser = fowl.getComponent(entity, Laser);
 		laser.timer += dt;
 		if (laser.timer > LASER_LETHAL + 40) {
 			fowl.removeEntity(entity);
@@ -242,7 +253,7 @@ var updateLasers = function(dt) {
 				spawnEnemy(laser.x, Math.random() * 600, Math.random() * 360);
 			}
 		}
-	}, "Laser");
+	}, Laser);
 };
 
 var rectangleInside = function(x1, y1, width1, height1, x2, y2, width2, height2) {
@@ -258,18 +269,18 @@ var rectangleInside = function(x1, y1, width1, height1, x2, y2, width2, height2)
 
 var playerCollision = function(dt) {
 	var collision = false;
-	var pos1 = fowl.getComponent(player, "Position"),
-		shape1 = fowl.getComponent(player, "Shape");
+	var pos1 = fowl.getComponent(player, Position),
+		shape1 = fowl.getComponent(player, Shape);
 	fowl.each(function(entity) {
-		var pos2 = fowl.getComponent(entity, "Position"),
-		shape2 = fowl.getComponent(entity, "Shape");
+		var pos2 = fowl.getComponent(entity, Position),
+		shape2 = fowl.getComponent(entity, Shape);
 
 	if (rectangleInside(pos1.x, pos1.y, shape1.width, shape1.height, pos2.x, pos2.y, shape2.width, shape2.height)) {
 		collision = true;
 	}
-	}, "Enemy", "Position", "Shape");
+	}, Enemy, Position, Shape);
 	fowl.each(function(entity) {
-		var laser = fowl.getComponent(entity, "Laser");
+		var laser = fowl.getComponent(entity, Laser);
 		if (laser.timer > LASER_LETHAL) {
 			var shape2 = new Shape();
 			shape2.width = 100;
@@ -284,7 +295,7 @@ var playerCollision = function(dt) {
 		collision = true;
 	}
 		}
-	}, "Laser");
+	}, Laser);
 	if (collision) {
 		console.log("you dead bro");
 		reset();
@@ -319,30 +330,30 @@ var playerCollision = function(dt) {
 			updateEnemies(dt);
 			updateLasers(dt);
 			fowl.each(function(entity) {
-				var position = fowl.getComponent(entity, "Position"),
-				direction = fowl.getComponent(entity, "Direction"),
-				velocity = fowl.getComponent(entity, "Velocity");
+				var position = fowl.getComponent(entity, Position),
+				direction = fowl.getComponent(entity, Direction),
+				velocity = fowl.getComponent(entity, Velocity);
 			position.x += Math.cos(direction.direction) * (velocity ? velocity.value : 1) * dt;
 			position.y -= Math.sin(direction.direction) * (velocity ? velocity.value : 1) * dt;
-			}, "Position", "Direction");
+			}, Position, Direction);
 			fowl.each(function(entity) {
-				var lifetime = fowl.getComponent(entity, "Lifetime");
+				var lifetime = fowl.getComponent(entity, Lifetime);
 				lifetime.remaining -= dt;
 				if (lifetime.remaining <= 0) fowl.removeEntity(entity);
-			}, "Lifetime");
+			}, Lifetime);
 			fowl.each(function(entity) {
-				var position = fowl.getComponent(entity, "Position"),
-					emitter = fowl.getComponent(entity, "ParticleEmitter");
-				if (Math.random() * 100 > emitter.spawnrate * dt) return;
+				var position = fowl.getComponent(entity, Position),
+					emitter = fowl.getComponent(entity, ParticleEmitter);
+				if (Math.random() * 100 * dt < 100 - emitter.spawnrate) return;
 				var particle = fowl.createEntity();
-				var lifetime = fowl.addComponent(particle, "Lifetime", new Lifetime(emitter.lifetime));
+				var lifetime = fowl.addComponent(particle, new Lifetime(emitter.lifetime));
 				// var lifetime2 = fowl.getComponent(entity, "Lifetime");
 				// if (lifetime2) lifetime.remaining = emitter.lifetime * lifetime2.remaining / lifetime2.start;
-				var position = fowl.addComponent(particle, "Position", new Position(position.x, position.y));
+				var position = fowl.addComponent(particle, new Position(position.x, position.y));
 				if (emitter.randomY) position.y = Math.random() * 600;
-				var shapeParent = fowl.getComponent(entity, "Shape");
-				fowl.addComponent(particle, "Direction", new Direction()).direction = Math.random() * 360;
-				var shape = fowl.addComponent(particle, "Shape", new Shape());
+				var shapeParent = fowl.getComponent(entity, Shape);
+				fowl.addComponent(particle, new Direction()).direction = Math.random() * 360;
+				var shape = fowl.addComponent(particle, new Shape());
 				shape.width = shape.height = emitter.size;
 				shape.color = emitter.color;
 
@@ -350,7 +361,7 @@ var playerCollision = function(dt) {
 					position.x += shapeParent.width / 2 - shape.width / 2;
 					position.y += shapeParent.height / 2 - shape.height / 2;
 				}
-			}, "Position", "ParticleEmitter");
+			}, Position, ParticleEmitter);
 			playerCollision();
 
 			// Up the difficulty
