@@ -207,7 +207,7 @@ var spawnEnemy = function(x, y, direction) {
 }
 
 var updateEnemies = function(dt) {
-	if (Math.random() * 100 < enemySpawnrate) return;
+	if (Math.random() * 100 * dt < enemySpawnrate) return;
 	var x, y, direction, pad = 50;
 
 	direction = Math.random() * 360;
@@ -229,11 +229,9 @@ var updateEnemies = function(dt) {
 
 var updateLasers = function(dt) {
 	// Spawn lasers
-	if (level >= 1 && Math.random() * 100 < 0.1) {
+	if (level >= 1 && Math.random() * 100 < 0.1 * dt) {
 		var laser = fowl.createEntity();
 		fowl.addComponent(laser, "Laser", new Laser());
-		var emitter = fowl.addComponent(laser, "ParticleEmitter", new ParticleEmitter(5, "purple", 30));
-		emitter.randomY = true;
 	}
 	fowl.each(function(entity) {
 		var laser = fowl.getComponent(entity, "Laser");
@@ -320,7 +318,7 @@ var playerCollision = function(dt) {
 			updatePlayer(dt);
 			updateEnemies(dt);
 			updateLasers(dt);
-			fowl.each(function(entity, position, direction) {
+			fowl.each(function(entity) {
 				var position = fowl.getComponent(entity, "Position"),
 				direction = fowl.getComponent(entity, "Direction"),
 				velocity = fowl.getComponent(entity, "Velocity");
@@ -334,22 +332,24 @@ var playerCollision = function(dt) {
 			}, "Lifetime");
 			fowl.each(function(entity) {
 				var position = fowl.getComponent(entity, "Position"),
-				emitter = fowl.getComponent(entity, "ParticleEmitter");
-			if (Math.random() * 100 > emitter.spawnrate) return;
-			var particle = fowl.createEntity();
-			fowl.addComponent(particle, "Lifetime", new Lifetime(emitter.lifetime));
-			var position = fowl.addComponent(particle, "Position", new Position(position.x, position.y));
-			if (emitter.randomY) position.y = Math.random() * 600;
-			var shapeParent = fowl.getComponent(entity, "Shape");
-			fowl.addComponent(particle, "Direction", new Direction()).direction = Math.random() * 360;
-			var shape = fowl.addComponent(particle, "Shape", new Shape());
-			shape.width = shape.height = emitter.size;
-			shape.color = emitter.color;
+					emitter = fowl.getComponent(entity, "ParticleEmitter");
+				if (Math.random() * 100 > emitter.spawnrate * dt) return;
+				var particle = fowl.createEntity();
+				var lifetime = fowl.addComponent(particle, "Lifetime", new Lifetime(emitter.lifetime));
+				// var lifetime2 = fowl.getComponent(entity, "Lifetime");
+				// if (lifetime2) lifetime.remaining = emitter.lifetime * lifetime2.remaining / lifetime2.start;
+				var position = fowl.addComponent(particle, "Position", new Position(position.x, position.y));
+				if (emitter.randomY) position.y = Math.random() * 600;
+				var shapeParent = fowl.getComponent(entity, "Shape");
+				fowl.addComponent(particle, "Direction", new Direction()).direction = Math.random() * 360;
+				var shape = fowl.addComponent(particle, "Shape", new Shape());
+				shape.width = shape.height = emitter.size;
+				shape.color = emitter.color;
 
-			if (shapeParent) {
-				position.x += shapeParent.width / 2 - shape.width / 2;
-				position.y += shapeParent.height / 2 - shape.height / 2;
-			}
+				if (shapeParent) {
+					position.x += shapeParent.width / 2 - shape.width / 2;
+					position.y += shapeParent.height / 2 - shape.height / 2;
+				}
 			}, "Position", "ParticleEmitter");
 			playerCollision();
 
