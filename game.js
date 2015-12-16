@@ -64,7 +64,7 @@ var level = 0;
 var STATE_MAINMENU = 0
 var STATE_INGAME = 1;
 var state = STATE_MAINMENU;
-var scoreNeededToAdvance = [20, 40, 60, 90, 500];
+var scoreNeededToAdvance = [1, 40, 60, 90, 500];
 var mainMenuText = [
 	["Escape or the eveil red blobs will rape you!!1", "Press space to start your nightmare :)"], // Level 1
 	["YOU are level 2 now beatsch!11", "Press space to start your nightmare #2 :)"], // Level 2
@@ -76,9 +76,15 @@ var MOVEMENT_SPEED = 5, enemySpeed, enemySpawnrate;
 var HELLMODE_IN;
 var LASER_LETHAL = 100;
 
+var textGradient;
+
 var init = function() {
 	canvas = document.getElementById("canvas");
 	ctx = canvas.getContext("2d");
+	textGradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+	textGradient.addColorStop("0", "magenta");
+	textGradient.addColorStop("0.5", "blue");
+	textGradient.addColorStop("1", "red");
 	fowl.registerComponents([Position,
 			Shape,
 			Lifetime,
@@ -111,11 +117,7 @@ var render = function() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
 	ctx.globalAlpha = 1;
 	if (state == STATE_MAINMENU) {
-		var gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-		gradient.addColorStop("0", "magenta");
-		gradient.addColorStop("0.5", "blue");
-		gradient.addColorStop("1", "red");
-		ctx.fillStyle = gradient;
+		ctx.fillStyle = textGradient;
 		ctx.font = "30px Verdana";
 		ctx.fillText(mainMenuText[level][0], 50, 200);
 		ctx.font = "24px Serif";
@@ -134,13 +136,13 @@ var render = function() {
 				g2.addColorStop("1", "lightgreen");
 				ctx.strokeStyle = g2;
 			}
-			if (laser.timer < LASER_LETHAL - 5 || laser.timer > LASER_LETHAL) {
-				ctx.beginPath();
-				ctx.moveTo(laser.x, 0);
-				ctx.lineWidth = width;
-				ctx.lineTo(laser.x, 600);
-				ctx.stroke();
-			}
+		if (laser.timer < LASER_LETHAL - 5 || laser.timer > LASER_LETHAL) {
+			ctx.beginPath();
+			ctx.moveTo(laser.x, 0);
+			ctx.lineWidth = width;
+			ctx.lineTo(laser.x, 600);
+			ctx.stroke();
+		}
 		}, Laser);
 		// Draw shapes
 		fowl.each(function(entity) {
@@ -152,11 +154,7 @@ var render = function() {
 			ctx.fillRect(position.x, position.y, shape.width, shape.height);
 		}, Position, Shape);
 		if (HELLMODE_IN <= 0) {
-			var gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-			gradient.addColorStop("0", "magenta");
-			gradient.addColorStop("0.5", "blue");
-			gradient.addColorStop("1", "red");
-			ctx.fillStyle = gradient;
+			ctx.fillStyle = textGradient;
 			ctx.font = "30px Verdana";
 			ctx.fillText("HELLMODE ACTIVATE PREPARE YOUR ANUS", 50 + Math.random() * 20, 200 + Math.random() * 20);
 			if (HELLMODE_IN <= -350) {

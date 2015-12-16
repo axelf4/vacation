@@ -1,42 +1,45 @@
 "use strict";
+var INITIAL_SIZE = 1024;
 var fowl = {
 	components: [],
-	entityMask: new Uint32Array(1024),
+	componentCount: 0,
+	entityMask: new Uint32Array(INITIAL_SIZE),
 	nextEntityIndex: 0,
-	availibleIndices: [],
+	pool: [],
 	createEntity: function() {
-		var entity = this.availibleIndices.length > 0 ? this.availibleIndices.shift() : this.nextEntityIndex++;
-		this.components[entity] = [];
+		var entity = this.pool.length > 0 ? this.pool.pop() : this.nextEntityIndex++;
 		if (entity > this.entityMask.length) {
 			var tmp = this.entityMask;
-			this.entityMask = new Uint32Array(tmp.length * 2);
+			this.entityMask = new Uint32Array(tmp.length * 1.5);
 			this.entityMask.set(tmp);
 		}
 		return entity;
 	},
 	removeEntity: function(entity) {
 		this.entityMask[entity] = 0;
-		delete this.components[entity]; // this.components.splice(entity, 1);
-		this.availibleIndices.push(entity);
+		this.pool.push(entity);
 	},
 	addComponent: function(entity, component) {
 		var key = component.constructor.componentId;
 		this.entityMask[entity] |= 1 << key;
-		return this.components[entity][key] = component;
+		return this.components[this.componentCount * entity + key] = component;
+	},
+	removeComponent: function(entity, component) {
+		this.entityMask[entity] &= ~(1 << component.componentId);
 	},
 	getComponent: function(entity, key) {
-		return this.components[entity][key.componentId];
+		return this.components[this.componentCount * entity + key.componentId];
 	},
 	clear: function() {
-		this.components = [];
+		this.entityMask.fill(0);
 	},
 	each: function(callback) {
 		var mask = 0;
 		for (var i = 1; i < arguments.length; ++i) {
 			mask |= 1 << arguments[i].componentId;
 		}
-		for (var i = 0, length = this.components.length; i < length; ++i) {
-			if ((this.entityMask[i] & mask) === mask && this.components[i] !== undefined) {
+		for (var i = 0, length = this.entityMask.length; i < length; ++i) {
+			if ((this.entityMask[i] & mask) === mask) {
 				callback(i); // Call callback with the entity
 			}
 		}
@@ -46,5 +49,6 @@ var fowl = {
 		for (var i = 0, length = components.length; i < length; ++i) {
 			components[i].componentId = i;
 		}
+		this.componentCount = components.length;
 	}
 };
