@@ -7,6 +7,11 @@ var fowl = {
 	createEntity: function() {
 		var entity = this.availibleIndices.length > 0 ? this.availibleIndices.shift() : this.nextEntityIndex++;
 		this.components[entity] = [];
+		if (entity > this.entityMask.length) {
+			var tmp = this.entityMask;
+			this.entityMask = new Uint32Array(tmp.length * 2);
+			this.entityMask.set(tmp);
+		}
 		return entity;
 	},
 	removeEntity: function(entity) {
@@ -24,7 +29,6 @@ var fowl = {
 	},
 	clear: function() {
 		this.components = [];
-		this.availibleIndices = [];
 	},
 	each: function(callback) {
 		var mask = 0;
@@ -32,7 +36,7 @@ var fowl = {
 			mask |= 1 << arguments[i].componentId;
 		}
 		for (var i = 0, length = this.components.length; i < length; ++i) {
-			if (this.components[i] !== undefined && (this.entityMask[i] & mask) === mask) {
+			if ((this.entityMask[i] & mask) === mask && this.components[i] !== undefined) {
 				callback(i); // Call callback with the entity
 			}
 		}
