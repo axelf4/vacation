@@ -218,7 +218,7 @@ var spawnEnemy = function(x, y, direction) {
 }
 
 var updateEnemies = function(dt) {
-	if (Math.random() * 100 < enemySpawnrate * dt) return;
+	if (Math.random() * 100 * dt < enemySpawnrate) return;
 	var x, y, direction, pad = 50;
 
 	direction = Math.random() * 360;
