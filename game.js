@@ -64,7 +64,7 @@ var level = 0;
 var STATE_MAINMENU = 0
 var STATE_INGAME = 1;
 var state = STATE_MAINMENU;
-var scoreNeededToAdvance = [1, 40, 60, 90, 500];
+var scoreNeededToAdvance = [20, 40, 60, 90, 500];
 var mainMenuText = [
 	["Escape or the eveil red blobs will rape you!!1", "Press space to start your nightmare :)"], // Level 1
 	["YOU are level 2 now beatsch!11", "Press space to start your nightmare #2 :)"], // Level 2
