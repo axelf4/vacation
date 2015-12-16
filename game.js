@@ -169,10 +169,10 @@ var render = function() {
 var updatePlayer = function(dt) {
 	var position = fowl.getComponent(player, Position);
 	if (level < 3) {
-		if (keys[65] || keys[37] && position.x > 0) position.x -= MOVEMENT_SPEED * dt;
-		if (keys[87] || keys[38] && position.y > 0) position.y -= MOVEMENT_SPEED * dt;
-		if (keys[68] || keys[39] && position.x < 800) position.x += MOVEMENT_SPEED * dt;
-		if (keys[83] || keys[40] && position.y < 600) position.y += MOVEMENT_SPEED * dt;
+		if ((keys[65] || keys[37]) && position.x > 0) position.x -= MOVEMENT_SPEED * dt;
+		if ((keys[87] || keys[38]) && position.y > 0) position.y -= MOVEMENT_SPEED * dt;
+		if ((keys[68] || keys[39]) && position.x < 800) position.x += MOVEMENT_SPEED * dt;
+		if ((keys[83] || keys[40]) && position.y < 600) position.y += MOVEMENT_SPEED * dt;
 	} else {
 		var acceleration = new Acceleration();
 		var velocity = fowl.getComponent(player, Velocity2);
