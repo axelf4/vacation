@@ -1,17 +1,16 @@
 "use strict";
 var INITIAL_SIZE = 1024;
 var fowl = {
-	components: [],
 	componentCount: 0,
+	components: [],
 	entityMask: new Uint32Array(INITIAL_SIZE),
-	nextEntityIndex: 0,
+	count: 0,
 	pool: [],
 	createEntity: function() {
-		var entity = this.pool.length > 0 ? this.pool.pop() : this.nextEntityIndex++;
-		if (entity > this.entityMask.length) {
+		var entity = this.pool.length > 0 ? this.pool.pop() : this.count++;
+		if (entity >= this.entityMask.length) {
 			var tmp = this.entityMask;
-			this.entityMask = new Uint32Array(tmp.length * 1.5);
-			this.entityMask.set(tmp);
+			(this.entityMask = new Uint32Array(tmp.length * 1.5)).set(tmp);
 		}
 		return entity;
 	},
@@ -38,17 +37,17 @@ var fowl = {
 		for (var i = 1; i < arguments.length; ++i) {
 			mask |= 1 << arguments[i].componentId;
 		}
-		for (var i = 0, length = this.entityMask.length; i < length; ++i) {
+		for (var i = 0, length = this.count; i < length; ++i) {
 			if ((this.entityMask[i] & mask) === mask) {
 				callback(i); // Call callback with the entity
 			}
 		}
 	},
 	registerComponents: function(components) {
-		if (components.length > 32) throw new RangeError("Too many components");
-		for (var i = 0, length = components.length; i < length; ++i) {
-			components[i].componentId = i;
+		if (arguments.length > 32) throw new RangeError("Too many components");
+		for (var i = 0, length = arguments.length; i < length; ++i) {
+			arguments[i].componentId = i;
 		}
-		this.componentCount = components.length;
+		this.componentCount = arguments.length;
 	}
 };

@@ -85,7 +85,7 @@ var init = function() {
 	textGradient.addColorStop("0", "magenta");
 	textGradient.addColorStop("0.5", "blue");
 	textGradient.addColorStop("1", "red");
-	fowl.registerComponents([Position,
+	fowl.registerComponents(Position,
 			Shape,
 			Lifetime,
 			Direction,
@@ -95,7 +95,7 @@ var init = function() {
 			Shrink,
 			Acceleration,
 			Velocity2,
-			Laser]);
+			Laser);
 	update();
 };
 
@@ -112,6 +112,34 @@ var newGame = function() {
 	fowl.addComponent(player, new Shrink(10, 100));
 	fowl.addComponent(player, new Velocity2());
 };
+var drawLasers = function(entity) {
+	var laser = fowl.getComponent(entity, Laser);
+	var width = 60 * Math.min(100, laser.timer) / 100;
+	if (laser.timer < 100) ctx.strokeStyle = "lightgreen";
+	else {
+		var g2 = ctx.createLinearGradient(laser.x - width, 0, laser.x + width, 0);
+		g2.addColorStop("0", "lightgreen");
+		g2.addColorStop("0.5", "red");
+		g2.addColorStop("1", "lightgreen");
+		ctx.strokeStyle = g2;
+	}
+	if (laser.timer < LASER_LETHAL - 5 || laser.timer > LASER_LETHAL) {
+		ctx.beginPath();
+		ctx.moveTo(laser.x, 0);
+		ctx.lineWidth = width;
+		ctx.lineTo(laser.x, 600);
+		ctx.stroke();
+	}
+};
+
+var drawShapes = function(entity) {
+	var position = fowl.getComponent(entity, Position),
+		shape = fowl.getComponent(entity, Shape),
+		lifetime = fowl.getComponent(entity, Lifetime);
+	ctx.globalAlpha = lifetime ? lifetime.remaining / lifetime.start : 1;
+	ctx.fillStyle = shape.color;
+	ctx.fillRect(position.x, position.y, shape.width, shape.height);
+};
 
 var render = function() {
 	ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -125,34 +153,9 @@ var render = function() {
 		ctx.fillText("Get a score of " + scoreNeededToAdvance[level] + " to advance to lv " + (level + 2), 70, 320);
 	} else if (state == STATE_INGAME) {
 		// Draw lasers
-		fowl.each(function(entity) {
-			var laser = fowl.getComponent(entity, Laser);
-			var width = 60 * Math.min(100, laser.timer) / 100;
-			if (laser.timer < 100) ctx.strokeStyle = "lightgreen";
-			else {
-				var g2 = ctx.createLinearGradient(laser.x - width, 0, laser.x + width, 0);
-				g2.addColorStop("0", "lightgreen");
-				g2.addColorStop("0.5", "red");
-				g2.addColorStop("1", "lightgreen");
-				ctx.strokeStyle = g2;
-			}
-		if (laser.timer < LASER_LETHAL - 5 || laser.timer > LASER_LETHAL) {
-			ctx.beginPath();
-			ctx.moveTo(laser.x, 0);
-			ctx.lineWidth = width;
-			ctx.lineTo(laser.x, 600);
-			ctx.stroke();
-		}
-		}, Laser);
+		fowl.each(drawLasers, Laser);
 		// Draw shapes
-		fowl.each(function(entity) {
-			var position = fowl.getComponent(entity, Position),
-			shape = fowl.getComponent(entity, Shape),
-			lifetime = fowl.getComponent(entity, Lifetime);
-			ctx.globalAlpha = lifetime ? lifetime.remaining / lifetime.start : 1;
-			ctx.fillStyle = shape.color;
-			ctx.fillRect(position.x, position.y, shape.width, shape.height);
-		}, Position, Shape);
+		fowl.each(drawShapes, Position, Shape);
 		if (HELLMODE_IN <= 0) {
 			ctx.fillStyle = textGradient;
 			ctx.font = "30px Verdana";
