@@ -64,7 +64,7 @@ var level = 0;
 var STATE_MAINMENU = 0
 var STATE_INGAME = 1;
 var state = STATE_MAINMENU;
-var scoreNeededToAdvance = [20, 40, 60, 90, 500];
+var scoreNeededToAdvance = [20, 40, 60, 80, 100];
 var mainMenuText = [
 	["Escape or the eveil red blobs will rape you!!1", "Press space to start your nightmare :)"], // Level 1
 	["YOU are level 2 now beatsch!11", "Press space to start your nightmare #2 :)"], // Level 2
@@ -72,9 +72,10 @@ var mainMenuText = [
 	["You think you have the guts to face me?!", "Just press space, ok??!2"], // Level 4
 	["Fuck you.", "You have beaten the game."]];
 
-var MOVEMENT_SPEED = 5, enemySpeed, enemySpawnrate;
+var MOVEMENT_SPEED = 5, enemySpeed, enemyTimer, enemySpawnrate;
 var HELLMODE_IN;
 var LASER_LETHAL = 100;
+var MIN_ENEMY_SPAWN_DELAY = 0.01;
 
 var textGradient;
 
@@ -86,24 +87,25 @@ var init = function() {
 	textGradient.addColorStop("0.5", "blue");
 	textGradient.addColorStop("1", "red");
 	fowl.registerComponents(Position,
-			Shape,
-			Lifetime,
-			Direction,
-			Velocity,
-			ParticleEmitter,
-			Enemy,
-			Shrink,
-			Acceleration,
-			Velocity2,
-			Laser);
+		Shape,
+		Lifetime,
+		Direction,
+		Velocity,
+		ParticleEmitter,
+		Enemy,
+		Shrink,
+		Acceleration,
+		Velocity2,
+		Laser);
 	update();
 };
 
 var newGame = function() {
 	state = STATE_INGAME;
 	enemySpeed = 2;
-	enemySpawnrate = 90;
+	enemySpawnrate = 9;
 	HELLMODE_IN = 500;
+	enemyTimer = 0;
 
 	player = fowl.createEntity();
 	fowl.addComponent(player, new Position(800 / 2, 600 / 2));
@@ -112,6 +114,7 @@ var newGame = function() {
 	fowl.addComponent(player, new Shrink(10, 100));
 	fowl.addComponent(player, new Velocity2());
 };
+
 var drawLasers = function(entity) {
 	var laser = fowl.getComponent(entity, Laser);
 	var width = 60 * Math.min(100, laser.timer) / 100;
@@ -152,8 +155,8 @@ var render = function() {
 		ctx.fillText(mainMenuText[level][1], 70, 270);
 		ctx.fillText("Get a score of " + scoreNeededToAdvance[level] + " to advance to lv " + (level + 2), 70, 320);
 	} else if (state == STATE_INGAME) {
-		// Draw lasers
-		fowl.each(drawLasers, Laser);
+		fowl.each(drawLasers, Laser); // Draw lasers
+
 		// Draw shapes
 		fowl.each(drawShapes, Position, Shape);
 		if (HELLMODE_IN <= 0) {
@@ -219,24 +222,27 @@ var spawnEnemy = function(x, y, direction) {
 }
 
 var updateEnemies = function(dt) {
-	if (Math.random() * 100 * dt < enemySpawnrate) return;
-	var x, y, direction, pad = 50;
+	enemyTimer += dt;
+	// if (Math.random() * 100 * dt < enemySpawnrate) return;
+	for (; enemyTimer >= enemySpawnrate; enemyTimer -= enemySpawnrate) {
+		var x, y, direction, pad = 50;
 
-	direction = Math.random() * 360;
-	if (direction < 135 && direction >= 45) {
-		x = Math.random() * 800;
-		y = 0 - pad;
-	} else if (direction < 225 && direction >= 135) {
-		x = 800 + pad;
-		y = Math.random() * 600;
-	} else if (direction < 315 && direction >=225) {
-		x = Math.random() * 800;
-		y = 600 + pad;
-	} else {
-		x = 0 - pad;
-		y = Math.random() * 600;
+		direction = Math.random() * 360;
+		if (direction < 135 && direction >= 45) {
+			x = Math.random() * 800;
+			y = 0 - pad;
+		} else if (direction < 225 && direction >= 135) {
+			x = 800 + pad;
+			y = Math.random() * 600;
+		} else if (direction < 315 && direction >=225) {
+			x = Math.random() * 800;
+			y = 600 + pad;
+		} else {
+			x = 0 - pad;
+			y = Math.random() * 600;
+		}
+		spawnEnemy(x, y, direction);
 	}
-	spawnEnemy(x, y, direction);
 };
 
 var updateLasers = function(dt) {
@@ -258,14 +264,8 @@ var updateLasers = function(dt) {
 };
 
 var rectangleInside = function(x1, y1, width1, height1, x2, y2, width2, height2) {
-	// if (pos1.x < pos2.x + shape2.width
-	// && pos1.x + shape1.width > pos2.x
-	// && pos1.y < pos2.y + shape2.height
-	// && pos1.y + shape1.height > pos2.y) {
-	return !(x1 > x2 + width2
-			|| x1 + width1 < x2
-			|| y1 > y2 + height2
-			|| y1 + height1 < y2);
+	return !(x1 > x2 + width2 || x1 + width1 < x2
+		|| y1 > y2 + height2 || y1 + height1 < y2);
 };
 
 var playerCollision = function(dt) {
@@ -274,11 +274,11 @@ var playerCollision = function(dt) {
 		shape1 = fowl.getComponent(player, Shape);
 	fowl.each(function(entity) {
 		var pos2 = fowl.getComponent(entity, Position),
-		shape2 = fowl.getComponent(entity, Shape);
+			shape2 = fowl.getComponent(entity, Shape);
 
-	if (rectangleInside(pos1.x, pos1.y, shape1.width, shape1.height, pos2.x, pos2.y, shape2.width, shape2.height)) {
-		collision = true;
-	}
+		if (rectangleInside(pos1.x, pos1.y, shape1.width, shape1.height, pos2.x, pos2.y, shape2.width, shape2.height)) {
+			collision = true;
+		}
 	}, Enemy, Position, Shape);
 	fowl.each(function(entity) {
 		var laser = fowl.getComponent(entity, Laser);
@@ -288,13 +288,13 @@ var playerCollision = function(dt) {
 			shape2.height = 600;
 			var pos2 = new Position(laser.x - shape2.width / 2, 0);
 			var width = 100,
-		height = 600,
-		x = laser.x - width / 2,
-		y = 0;
+				height = 600,
+				x = laser.x - width / 2,
+				y = 0;
 
-	if (rectangleInside(pos1.x, pos1.y, shape1.width, shape1.height, x, y, width, height)) {
-		collision = true;
-	}
+			if (rectangleInside(pos1.x, pos1.y, shape1.width, shape1.height, x, y, width, height)) {
+				collision = true;
+			}
 		}
 	}, Laser);
 	if (collision) {
@@ -308,90 +308,94 @@ var playerCollision = function(dt) {
 	}
 }
 
-	var updateScore = function() {
-		document.getElementById("score").innerText = "Score: " + Math.floor(score);
-	};
+var updateScore = function() {
+	document.getElementById("score").innerText = "Score: " + Math.floor(score);
+};
 
-	var reset = function() {
-		fowl.clear();
-		state = STATE_MAINMENU;
-	};
+var reset = function() {
+	fowl.clear();
+	state = STATE_MAINMENU;
+};
 
-	var update = function(time) {
-		var dt = time - lastTime;
-		dt /= 20;
-		lastTime = time;
-		if (state === STATE_MAINMENU) {
-			if (keys[32]) {
-				newGame();
-			}
-		} else if (state === STATE_INGAME) {
-			updateScore();
-			updatePlayer(dt);
-			updateEnemies(dt);
-			updateLasers(dt);
-			fowl.each(function(entity) {
-				var position = fowl.getComponent(entity, Position),
+var update = function(time) {
+	var dt = time - lastTime;
+	dt /= 20;
+	lastTime = time;
+
+	updateScore();
+	if (state === STATE_MAINMENU) {
+		if (keys[32]) {
+			newGame();
+		}
+	} else if (state === STATE_INGAME) {
+		updatePlayer(dt);
+		updateEnemies(dt);
+		updateLasers(dt);
+		fowl.each(function(entity) {
+			var position = fowl.getComponent(entity, Position),
 				direction = fowl.getComponent(entity, Direction),
 				velocity = fowl.getComponent(entity, Velocity);
 			position.x += Math.cos(direction.direction) * (velocity ? velocity.value : 1) * dt;
 			position.y -= Math.sin(direction.direction) * (velocity ? velocity.value : 1) * dt;
-			}, Position, Direction);
-			fowl.each(function(entity) {
-				var lifetime = fowl.getComponent(entity, Lifetime);
-				lifetime.remaining -= dt;
-				if (lifetime.remaining <= 0) fowl.removeEntity(entity);
-			}, Lifetime);
-			fowl.each(function(entity) {
-				var position = fowl.getComponent(entity, Position),
-					emitter = fowl.getComponent(entity, ParticleEmitter);
-				if (Math.random() * 100 * dt < 100 - emitter.spawnrate) return;
-				var particle = fowl.createEntity();
-				var lifetime = fowl.addComponent(particle, new Lifetime(emitter.lifetime));
-				// var lifetime2 = fowl.getComponent(entity, "Lifetime");
-				// if (lifetime2) lifetime.remaining = emitter.lifetime * lifetime2.remaining / lifetime2.start;
-				var position = fowl.addComponent(particle, new Position(position.x, position.y));
-				if (emitter.randomY) position.y = Math.random() * 600;
-				var shapeParent = fowl.getComponent(entity, Shape);
-				fowl.addComponent(particle, new Direction()).direction = Math.random() * 360;
-				var shape = fowl.addComponent(particle, new Shape());
-				shape.width = shape.height = emitter.size;
-				shape.color = emitter.color;
+		}, Position, Direction);
+		fowl.each(function(entity) {
+			var lifetime = fowl.getComponent(entity, Lifetime);
+			lifetime.remaining -= dt;
+			if (lifetime.remaining <= 0) fowl.removeEntity(entity);
+		}, Lifetime);
+		fowl.each(function(entity) {
+			var position = fowl.getComponent(entity, Position),
+				emitter = fowl.getComponent(entity, ParticleEmitter);
+			if (Math.random() * 100 * dt < 100 - emitter.spawnrate) return;
+			var particle = fowl.createEntity();
+			var lifetime = fowl.addComponent(particle, new Lifetime(emitter.lifetime));
+			// var lifetime2 = fowl.getComponent(entity, "Lifetime");
+			// if (lifetime2) lifetime.remaining = emitter.lifetime * lifetime2.remaining / lifetime2.start;
+			var position = fowl.addComponent(particle, new Position(position.x, position.y));
+			if (emitter.randomY) position.y = Math.random() * 600;
+			var shapeParent = fowl.getComponent(entity, Shape);
+			fowl.addComponent(particle, new Direction()).direction = Math.random() * 360;
+			var shape = fowl.addComponent(particle, new Shape());
+			shape.width = shape.height = emitter.size;
+			shape.color = emitter.color;
 
-				if (shapeParent) {
-					position.x += shapeParent.width / 2 - shape.width / 2;
-					position.y += shapeParent.height / 2 - shape.height / 2;
-				}
-			}, Position, ParticleEmitter);
-			playerCollision();
-
-			// Up the difficulty
-			if (HELLMODE_IN > -500) --HELLMODE_IN;
-			else {
-				enemySpeed += 0.01 * dt;
-				enemySpawnrate -= 0.1 * dt;
+			if (shapeParent) {
+				position.x += shapeParent.width / 2 - shape.width / 2;
+				position.y += shapeParent.height / 2 - shape.height / 2;
 			}
+		}, Position, ParticleEmitter);
+		playerCollision();
 
-			if (Math.random() > 0.99) score += dt;
-			if (score >= scoreNeededToAdvance[level]) {
-				reset();
-				++level;
-			}
+		// Up the difficulty
+		if (HELLMODE_IN > -400) HELLMODE_IN -= dt;
+		else {
+			enemySpeed += 0.01 * dt; // 0.05
+			// enemySpawnrate = Math.max(enemySpawnrate - 0.02 * dt, MIN_ENEMY_SPAWN_DELAY);
+			enemySpawnrate *= Math.pow(0.999, dt);
 		}
-		render();
-		window.requestAnimationFrame(update);
-	};
+		enemySpawnrate = Math.max(enemySpawnrate - 0.005 * dt, MIN_ENEMY_SPAWN_DELAY);
 
-	window.onload = function() {
-		init();
-	};
+		// if (Math.random() > 0.99) score += dt;
+		score += 0.015 * dt;
+		if (score >= scoreNeededToAdvance[level]) {
+			reset();
+			++level;
+		}
+	}
+	render();
+	window.requestAnimationFrame(update);
+};
 
-	document.onkeydown = function(e) {
-		e = e || window.event;
-		keys[e.keyCode] = true;
-	};
+window.onload = function() {
+	init();
+};
 
-	document.onkeyup = function(e) {
-		e = e || window.event;
-		keys[e.keyCode] = false;
-	};
+document.onkeydown = function(e) {
+	e = e || window.event;
+	keys[e.keyCode] = true;
+};
+
+document.onkeyup = function(e) {
+	e = e || window.event;
+	keys[e.keyCode] = false;
+};
